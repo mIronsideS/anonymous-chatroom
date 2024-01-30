@@ -10,8 +10,8 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import Typography from "@mui/material/Typography";
 import Container from "@mui/material/Container";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-import { auth, db } from "../Firebase";
-import { signInAnonymously, updateProfile } from "firebase/auth";
+import { auth, db, googleAuthProvider } from "../Firebase"; // Make sure to import googleAuthProvider
+import { signInWithPopup, updateProfile } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 
@@ -34,17 +34,17 @@ export default function SignUp() {
   const [username, setUsername] = React.useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
+  const handleGoogleSignIn = async () => {
     try {
-      const userCredential = await signInAnonymously(auth);
-      const update = await updateProfile(auth.currentUser, {
+      const result = await signInWithPopup(auth, googleAuthProvider);
+      const user = result.user;
+
+      // Update user profile with the provided username
+      await updateProfile(user, {
         displayName: username,
       });
 
-      const user = userCredential.user;
-
+      // Store user data in Firestore
       setDoc(doc(db, "users", user.uid), {
         username: username,
         userId: user.uid,
@@ -55,6 +55,11 @@ export default function SignUp() {
     } catch (error) {
       alert(error.message);
     }
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    await handleGoogleSignIn();
   };
 
   return (
@@ -92,7 +97,7 @@ export default function SignUp() {
               </Grid>
             </Grid>
             <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
-              Sign Up
+              Sign Up with Google
             </Button>
             <Grid container justifyContent="flex-end">
               <Grid item>
